@@ -7,4 +7,11 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <None Remove="steam\images\google_vs.png" />
+      <None Remove="steam\images\google_search.svg" />
+      <None Remove="steam\images\google_menu.png" />
+      <None Remove="steam\images\google_logo.png" />
+    </ItemGroup>
+
 </Project>
