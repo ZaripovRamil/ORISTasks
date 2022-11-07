@@ -1,11 +1,8 @@
 ﻿namespace ORMTask.Attributes;
 
-public class Id:Attribute
+public class Id:Column
 {
-    public string columnName;
-
-    public Id(string columnName)
+    public Id(string columnName):base(columnName)
     {
-        this.columnName = columnName;
     }
 }

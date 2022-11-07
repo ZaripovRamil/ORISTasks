@@ -6,9 +6,9 @@ public class Account
 {
     [Id("id")]
     public int? Id { get; }
-    [ColumnName("username")]
+    [ValueColumn("username")]
     public string Username { get; }
-    [ColumnName("password")]
+    [ValueColumn("password")]
     public int Password { get; set; }
 
     public Account(string username, int password)

@@ -37,8 +37,8 @@ internal class MyOrm
         var table = $"{typeof(T).Name}s";
         var lineData = typeof(T)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.GetCustomAttribute(typeof(ColumnName)) != null)
-            .ToDictionary(p => ((ColumnName) p.GetCustomAttribute(typeof(ColumnName))!).columnName,
+            .Where(p => p.GetCustomAttribute(typeof(ValueColumn)) != null)
+            .ToDictionary(p => ((ValueColumn) p.GetCustomAttribute(typeof(ValueColumn))!).ColumnName,
                 p => p.GetValue(item)?.ToString());
 
         var query =
@@ -56,12 +56,12 @@ internal class MyOrm
         var table = $"{typeof(T).Name}s";
         var lineData = typeof(T)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.GetCustomAttribute(typeof(ColumnName)) != null)
-            .ToDictionary(p => ((ColumnName) p.GetCustomAttribute(typeof(ColumnName))!).columnName,
+            .Where(p => p.GetCustomAttribute(typeof(ValueColumn)) != null)
+            .ToDictionary(p => ((ValueColumn) p.GetCustomAttribute(typeof(ValueColumn))!).ColumnName,
                 p => p.GetValue(newT)?.ToString());
         var query =
             $"UPDATE {table} SET {string.Join(", ", lineData.Select(pair => $"{pair.Key} = '{pair.Value}'"))} WHERE " +
-            $"{((Id) idColumn.GetCustomAttribute(typeof(Id))!).columnName} = {idColumn.GetValue(oldT)}";
+            $"{((Id) idColumn.GetCustomAttribute(typeof(Id))!).ColumnName} = {idColumn.GetValue(oldT)}";
         using var connection = new SqlConnection(_connectionString);
         return RunNonReturningQuery(query, connection);
     }
