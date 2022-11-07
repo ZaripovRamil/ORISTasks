@@ -6,7 +6,7 @@ internal class AccountDao
 {
     private MyOrm Orm { get; }
 
-    public AccountDao(string connectionString, string tableName)
+    public AccountDao(string connectionString)
     {
         Orm = new MyOrm(connectionString);
     }
@@ -19,7 +19,9 @@ internal class AccountDao
 
     public void Insert(Account account) => Orm.Insert(account);
 
-    public void DeleteById(int id) => Orm.Delete<Account>("id", id);
+    public void Update(Account old, Account newAcc) => Orm.Update(old, newAcc);
+
+        public void DeleteById(int id) => Orm.Delete<Account>("id", id);
 
     public void DeleteByUsername(string username) => Orm.Delete<Account>("username", username);
 }

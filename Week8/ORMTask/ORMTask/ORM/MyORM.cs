@@ -39,14 +39,39 @@ internal class MyOrm
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Where(p => p.GetCustomAttribute(typeof(ColumnName)) != null)
             .ToDictionary(p => ((ColumnName) p.GetCustomAttribute(typeof(ColumnName))!).columnName,
-                p => $"'{p.GetValue(item)}'");
+                p => p.GetValue(item)?.ToString());
 
         var query =
             $"INSERT INTO {table} " +
-            $"({string.Join(", ", lineData.Keys)}) VALUES ({string.Join(", ", lineData.Values)})";
+            $"({string.Join(", ", lineData.Keys)}) VALUES ('{string.Join("', '", lineData.Values)}')";
 
         using var connection = new SqlConnection(_connectionString);
         RunNonReturningQuery(query, connection);
+    }
+
+    public int Update<T>(T oldT, T newT)
+    {
+        var idColumn = typeof(T).GetProperties().FirstOrDefault(p => Attribute.IsDefined(p, typeof(Id)));
+        if (idColumn is null) throw new Exception("no id column in model");
+        var table = $"{typeof(T).Name}s";
+        var lineData = typeof(T)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => p.GetCustomAttribute(typeof(ColumnName)) != null)
+            .ToDictionary(p => ((ColumnName) p.GetCustomAttribute(typeof(ColumnName))!).columnName,
+                p => p.GetValue(newT)?.ToString());
+        var query =
+            $"UPDATE {table} SET {string.Join(", ", lineData.Select(pair => $"{pair.Key} = '{pair.Value}'"))} WHERE " +
+            $"{((Id) idColumn.GetCustomAttribute(typeof(Id))!).columnName} = {idColumn.GetValue(oldT)}";
+        using var connection = new SqlConnection(_connectionString);
+        return RunNonReturningQuery(query, connection);
+    }
+
+    public int Update<T>(int id, string column, object value)
+    {
+        var table = $"{typeof(T).Name}s";
+        var query = $"UPDATE {table} SET {column} = '{value}' WHERE id = {id}";
+        using var connection = new SqlConnection(_connectionString);
+        return RunNonReturningQuery(query, connection);
     }
 
     public int Delete<T>(string column, object value)

@@ -4,12 +4,13 @@ namespace ORMTask.Models;
 
 public class Account
 {
+    [Id("id")]
     public int? Id { get; }
     [ColumnName("username")]
     public string Username { get; }
     [ColumnName("password")]
-    public int Password { get; }
-    
+    public int Password { get; set; }
+
     public Account(string username, int password)
     {
         Username = username;

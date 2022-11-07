@@ -5,12 +5,12 @@ namespace ORMTask.ORM;
 internal class AccountRepository
 {
     private readonly Dictionary<int, Account> _repository;
-    private readonly MyOrm _orm;
+    private MyOrm Orm { get; }
 
     public AccountRepository(string connectionString)
     {
-        _orm = new MyOrm(connectionString);
-        _repository = _orm.Select<Account>().ToDictionary(account => (int)account.Id, account => account);
+        Orm = new MyOrm(connectionString);
+        _repository = Orm.Select<Account>().ToDictionary(account => account.Id!.Value, account => account);
     }
 
     public Account[] Select() => _repository.Values.ToArray();
@@ -19,14 +19,20 @@ internal class AccountRepository
 
     public void Insert(Account account)
     {
-        _orm.Insert(account);
-        var accountWithId = _orm.Select<Account>("username", account.Username).FirstOrDefault();
-        _repository.Add((int)accountWithId.Id, accountWithId);
+        Orm.Insert(account);
+        var accountWithId = Orm.Select<Account>("username", account.Username).FirstOrDefault();
+        _repository.Add(accountWithId!.Id!.Value, accountWithId);
+    }
+
+    public void UpdatePassword(int id, int password)
+    {
+        _repository[id].Password = password;
+        Orm.Update<Account>(id, "password", password);
     }
 
     public void Delete(int id)
     {
         _repository.Remove(id);
-        _orm.Delete<Account>("id",id);
+        Orm.Delete<Account>("id", id);
     }
 }
