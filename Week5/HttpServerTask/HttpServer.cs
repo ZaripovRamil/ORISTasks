@@ -1,68 +1,99 @@
 ﻿using System.Net;
+using System.Text.Json;
+using static System.GC;
 
 namespace HttpServerTask;
 
-public class HttpServer
+public class HttpServer : IDisposable
 {
-    static void Main(string[] args)
+    public ListenerStatus Status { get; private set; } = ListenerStatus.Dead;
+    private ServerSettings _serverSettings;
+    private const int MaxListeners = 10;
+    private int _activeListeners;
+
+    private readonly HttpListener _httpListener;
+
+    public HttpServer()
     {
-        var listener = StartServerListener();
-        HandlingServerListenerRequests(listener);
+        _serverSettings = new ServerSettings();
+        _httpListener = new HttpListener();
     }
 
-    private static void HandlingServerListenerRequests(HttpListener listener)
+    public void Start()
+    {
+        if (Status == ListenerStatus.Active)
+        {
+            Console.WriteLine("Server is already active.");
+            return;
+        }
+        _serverSettings = JsonSerializer.Deserialize<ServerSettings>(File.OpenRead("./settings.json"))
+                          ?? new ServerSettings();
+        _httpListener.Prefixes.Clear();
+        _httpListener.Prefixes.Add($"http://localhost:{_serverSettings.Port}/");
+        _httpListener.Start();
+        Console.WriteLine("Server launched");
+        Status = ListenerStatus.Active;
+        HandleRequests();
+    }
+
+    private void HandleRequests()
     {
         try
         {
             while (true)
             {
-                Console.WriteLine("Ожидание подключений...");
-                var context = listener.GetContext();
-                HandleRequest(context);
+                if (_activeListeners >= MaxListeners)
+                {
+                    Thread.Sleep(100);
+                    continue;
+                }
+                _httpListener.BeginGetContext(ListenerCallback, _httpListener);
+                _activeListeners += 1;
             }
+               
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             Console.WriteLine($"An exception has been thrown. {e.Message}. Restart server(y/n)?");
             var answer = Console.ReadLine();
-            if (answer == "y") RestartServerListener(listener);
-            else StopServerListener(listener);
+            if (answer == "y") HandleRequests();
+            else Stop();
         }
     }
 
-    private static void HandleRequest(HttpListenerContext context)
+    public void Stop()
     {
-        var request = context.Request;
-        if (request.Url.LocalPath == "/google")
+        if (Status == ListenerStatus.Dead)
         {
-            var response = context.Response;
-            var responseStr = File.ReadAllText("google\\google.html");
-            var buffer = System.Text.Encoding.UTF8.GetBytes(responseStr);
-            response.ContentLength64 = buffer.Length;
-            var output = response.OutputStream;
-            output.Write(buffer, 0, buffer.Length);
-            output.Close();
+            Console.WriteLine("Server is already dead");
+            return;
         }
+
+        _httpListener.Stop();
+        Status = ListenerStatus.Dead;
+        Console.WriteLine("Server stopped");
     }
 
-    private static void RestartServerListener(HttpListener listener)
+    private void ListenerCallback(IAsyncResult result)
     {
-        listener.Stop();
-        listener = StartServerListener();
-        HandlingServerListenerRequests(listener);
+        if (!_httpListener.IsListening) return;
+        var httpContext = _httpListener.EndGetContext(result);
+        var request = httpContext.Request;
+        var response = httpContext.Response;
+        var serverResponse = new ServerResponse(_serverSettings.Path, request.RawUrl ?? "/");
+        var buffer = serverResponse.Buffer;
+        response.Headers.Set("Content-Type", serverResponse.ContentType);
+        var output = response.OutputStream;
+        var task = output.WriteAsync(buffer, 0, buffer.Length);
+        task.Wait();
+        _activeListeners -= 1;
+        output.Close();
+        response.Close();
     }
 
-
-    private static void StopServerListener(HttpListener listener)
+    public void Dispose()
     {
-        listener.Close();
-    }
-
-    private static HttpListener StartServerListener()
-    {
-        var listener = new HttpListener();
-        listener.Prefixes.Add("http://localhost:8888/");
-        listener.Start();
-        return listener;
+        Stop();
+        SuppressFinalize(this);
     }
 }
