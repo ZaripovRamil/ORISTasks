@@ -59,9 +59,11 @@ internal class MyOrm
             .Where(p => p.GetCustomAttribute(typeof(ValueColumn)) != null)
             .ToDictionary(p => ((ValueColumn) p.GetCustomAttribute(typeof(ValueColumn))!).ColumnName,
                 p => p.GetValue(newT)?.ToString());
+        //My IDE hates this line but it works just normal
         var query =
             $"UPDATE {table} SET {string.Join(", ", lineData.Select(pair => $"{pair.Key} = '{pair.Value}'"))} WHERE " +
-            $"{((Id) idColumn.GetCustomAttribute(typeof(Id))!).ColumnName} = {idColumn.GetValue(oldT)}";
+            $"{((Id) idColumn.GetCustomAttribute(typeof(Id))!).ColumnName} = '{idColumn.GetValue(oldT)}'";
+        Console.WriteLine(query);//I left it here for demonstration and debug purposes, should be removed later
         using var connection = new SqlConnection(_connectionString);
         return RunNonReturningQuery(query, connection);
     }

@@ -1,10 +1,10 @@
 ﻿namespace ORMTask.Attributes;
 
-public class Column:Attribute
+public abstract class Column:Attribute
 {
     public readonly string ColumnName;
 
-    public Column(string columnName)
+    protected Column(string columnName)
     {
         ColumnName = columnName;
     }
